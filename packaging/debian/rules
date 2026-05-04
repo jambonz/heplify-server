@@ -15,8 +15,8 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	install -D -m 0755 heplify-server debian/heplify-server/usr/bin/heplify-server
-	install -D -m 0644 packaging/debian/heplify-server.toml debian/heplify-server/etc/heplify-server.toml
-	install -D -m 0644 packaging/debian/heplify-server.service debian/heplify-server/lib/systemd/system/heplify-server.service
+	install -D -m 0644 debian/heplify-server.toml debian/heplify-server/etc/heplify-server.toml
+	install -D -m 0644 debian/heplify-server.service debian/heplify-server/lib/systemd/system/heplify-server.service
 
 override_dh_auto_clean:
 	rm -f heplify-server
