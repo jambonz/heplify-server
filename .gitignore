@@ -1,5 +1,5 @@
-heplify-server
-heplify-server.*
+/heplify-server
+/heplify-server.*
 fuzz-workdir
 sipparser-fuzz.zip
 

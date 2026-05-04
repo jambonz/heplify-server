@@ -1,0 +1,12 @@
+[Unit]
+Description=HEP Capture Server for HOMER/SIPCAPTURE
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/heplify-server -config /etc/heplify-server.toml
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
