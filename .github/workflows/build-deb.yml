@@ -8,7 +8,17 @@ on:
 
 jobs:
   build-deb:
-    runs-on: ubuntu-22.04
+    # Build natively per-arch. heplify-server is a cgo build (libluajit), so
+    # cross-compiling is painful — use GitHub's native arm64 hosted runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout code
@@ -57,7 +67,7 @@ jobs:
       - name: Prepare artifacts
         run: |
           cp ../heplify-server*.deb .
-          sha256sum heplify-server*.deb > heplify-server_${{ steps.version.outputs.VERSION }}_amd64.deb.sha256
+          sha256sum heplify-server*.deb > heplify-server_${{ steps.version.outputs.VERSION }}_${{ matrix.arch }}.deb.sha256
           ls -la heplify-server*
 
       - name: Configure AWS credentials
@@ -72,12 +82,21 @@ jobs:
           aws s3 cp heplify-server*.deb s3://${{ secrets.AWS_S3_BUCKET }}/heplify-server/
           aws s3 cp heplify-server*.sha256 s3://${{ secrets.AWS_S3_BUCKET }}/heplify-server/
 
+  # Reindex the apt repo once, after BOTH arch builds have uploaded — a
+  # separate job (not an in-job step) so the dispatch fires a single time
+  # rather than once per matrix leg. apt-repo's publish.yml is stateless:
+  # it rescans every .deb in the bucket and files each by its control
+  # Architecture field, so the amd64 and arm64 .debs land in the right
+  # per-arch index.
+  notify-apt-repo:
+    needs: build-deb
+    runs-on: ubuntu-22.04
+    # Fires only on real tag pushes (not on workflow_dispatch testing).
+    # The PAT (APT_REPO_PAT) is a fine-grained token scoped to
+    # jambonz/apt-repo with Actions: write.
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
       - name: Trigger apt-repo publish
-        # Fires only on real tag pushes (not on workflow_dispatch testing).
-        # The PAT (APT_REPO_PAT) is a fine-grained token scoped to
-        # jambonz/apt-repo with Actions: write. The apt-repo workflow
-        # rebuilds the apt index from the S3 bucket and re-publishes it.
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           curl -fsSL -X POST \
             -H "Authorization: Bearer ${{ secrets.APT_REPO_PAT }}" \
