@@ -1,6 +1,6 @@
 # should be run from root directory of heplify-server
 # sudo docker build --no-cache -t sipcapture/heplify-server -f docker/Dockerfile . 
-FROM golang:alpine as builder
+FROM golang:alpine AS builder
 
 RUN apk update && apk add --no-cache git build-base 
 RUN git clone https://luajit.org/git/luajit-2.0.git \
