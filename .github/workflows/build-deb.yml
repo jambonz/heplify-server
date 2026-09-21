@@ -19,6 +19,9 @@ jobs:
           - arch: arm64
             runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
+    permissions:
+      id-token: write   # mint the OIDC token for AWS role assumption
+      contents: read
 
     steps:
       - name: Checkout code
@@ -71,10 +74,13 @@ jobs:
           ls -la heplify-server*
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        # No static credential: the job presents a short-lived GitHub OIDC
+        # token and assumes a role whose trust policy admits only this
+        # repository and whose permissions are scoped to this package's
+        # prefix in the bucket. Requires `id-token: write` on the job.
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::376029039784:role/jambonz-ci-heplify-server
           aws-region: ${{ secrets.AWS_S3_REGION }}
 
       - name: Copy to S3
